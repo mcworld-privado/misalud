@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MiSalud</title>
+<script src="vendor/supabase.js?v=20261109135644"></script>
+<style>
+:root{
+  --bg:#EEF3F2; --surface:#FFFFFF; --ink:#13262A; --muted:#5B6D70; --line:#D7E1E0;
+  --accent:#0E7C70; --accent-ink:#FFFFFF; --soft:#DDF0EC; --warn:#B4441F; --warn-soft:#FBE9E2;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0D1A1C; --surface:#152629; --ink:#E4EFEE; --muted:#93A8AA; --line:#25393C;
+  --accent:#4FC7B6; --accent-ink:#0D1A1C; --soft:#1C3A38; --warn:#FF9573; --warn-soft:#3A2420; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0D1A1C; --surface:#152629; --ink:#E4EFEE; --muted:#93A8AA; --line:#25393C;
+  --accent:#4FC7B6; --accent-ink:#0D1A1C; --soft:#1C3A38; --warn:#FF9573; --warn-soft:#3A2420; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:860px;margin:0 auto;padding:16px 16px 110px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+h1{font-size:1.45rem;font-weight:800;margin:0;letter-spacing:-.01em}
+h1 span{color:var(--accent)}
+h2{font-size:1.1rem;margin:0 0 10px}
+select,input,textarea{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-height:42px;width:100%}
+textarea{min-height:90px;resize:vertical}
+label{display:block;font-size:.88rem;color:var(--muted);font-weight:600;margin-top:12px}
+label > input,label > select,label > textarea{margin-top:4px;color:var(--ink);font-weight:400}
+.people{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;padding-bottom:2px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;cursor:pointer;font-weight:600;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.crumbs{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:.92rem;color:var(--muted);margin-bottom:10px}
+.crumbs a{color:var(--accent);text-decoration:none;font-weight:600}
+.crumbs b{color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.folder{display:flex;flex-direction:column;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;text-align:left;min-height:74px}
+.folder:hover{border-color:var(--accent)}
+.folder .n{font-weight:700;overflow-wrap:anywhere}
+.folder .c{font-size:.82rem;color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:8px}
+.rep{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;text-align:left;width:100%}
+.rep:hover{border-color:var(--accent)}
+.rep .ico{width:40px;height:40px;border-radius:10px;background:var(--soft);display:grid;place-items:center;font-size:1.2rem}
+.rep .t{font-weight:700;overflow-wrap:anywhere}
+.rep .s{font-size:.85rem;color:var(--muted)}
+.rep .d{font-size:.85rem;color:var(--muted);white-space:nowrap}
+.muted{color:var(--muted)}
+a{color:var(--accent)}
+.small{font-size:.86rem}
+.empty{color:var(--muted);text-align:center;padding:22px 10px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.btn{border:0;border-radius:10px;padding:11px 15px;font-weight:700;cursor:pointer;background:var(--soft);color:var(--ink)}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;border:1px solid var(--line)}
+.btn.danger{background:transparent;border:1px solid var(--warn);color:var(--warn)}
+.btn:disabled{opacity:.55;cursor:default}
+.linkbtn{background:none;border:0;color:var(--accent);font-weight:600;cursor:pointer;padding:8px 0;display:block}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 11px;cursor:pointer}
+.search{margin-bottom:12px}
+.meta{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.95rem;margin:6px 0 4px}
+.meta dt{color:var(--muted)}
+.meta dd{margin:0;overflow-wrap:anywhere}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin:10px 0}
+.thumb{position:relative;aspect-ratio:3/4;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:var(--bg);cursor:pointer;padding:0}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .pdf{display:grid;place-items:center;height:100%;font-weight:800;color:var(--accent);font-size:.9rem;padding:6px;text-align:center;overflow-wrap:anywhere}
+.pauta{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px}
+.pauta .t{font-weight:700}
+.pauta .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.tag{font-size:.74rem;background:var(--soft);color:var(--accent);border-radius:6px;padding:2px 7px;font-weight:700;margin-left:6px;vertical-align:middle}
+.ia{border-left:4px solid var(--accent);background:var(--bg);border-radius:0 12px 12px 0;padding:12px 14px;margin-top:10px}
+.ia h3{font-size:1rem;margin:14px 0 4px}
+.ia h3:first-child{margin-top:0}
+.ia p{margin:6px 0}
+.ia ul{margin:6px 0;padding-left:20px}
+.note{background:var(--warn-soft);color:var(--ink);border-radius:10px;padding:10px 12px;font-size:.9rem;margin-top:10px}
+pre.txt{white-space:pre-wrap;font:inherit;margin:6px 0;background:var(--bg);padding:10px;border-radius:10px;max-height:320px;overflow:auto}
+.fab{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--accent);color:var(--accent-ink);border:0;border-radius:999px;padding:15px 22px;font-weight:700;font-size:1rem;box-shadow:0 6px 20px rgba(10,60,55,.3);cursor:pointer;z-index:20}
+dialog{border:0;border-radius:18px;padding:0;width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 24px);background:var(--surface);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(5,20,20,.5)}
+.sheet{padding:20px}
+.sheet h2{font-size:1.2rem}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btns{display:flex;gap:10px;margin-top:18px}
+.btns > *{flex:1}
+.err{color:var(--warn);font-size:.9rem;min-height:1.2em;margin:8px 0 0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;z-index:60;max-width:calc(100vw - 32px)}
+.toast.on{opacity:1}
+.auth{max-width:420px;margin:12vh auto 0;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px}
+.auth .btn{width:100%;margin-top:14px}
+.code{font-size:1.4rem;letter-spacing:.3em;text-align:center}
+/* Modo enseñar: pantalla completa, sin menús */
+.show{position:fixed;inset:0;background:#000;color:#fff;z-index:50;overflow:auto;-webkit-overflow-scrolling:touch}
+.show .bar{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);z-index:2}
+.show .bar .t{font-weight:700;font-size:.95rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.show .bar button{background:#fff;color:#000;border:0;border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer}
+.show img{display:block;width:100%;max-width:1100px;margin:0 auto 10px}
+.show .pdfbtn{display:block;margin:20px auto;background:#fff;color:#000;border-radius:12px;padding:16px 20px;font-weight:700;text-decoration:none;text-align:center;max-width:420px}
+.show .txt{max-width:900px;margin:0 auto;padding:16px;white-space:pre-wrap;font-size:1.05rem}
+.prog{height:8px;background:var(--bg);border-radius:6px;overflow:hidden;margin-top:10px}
+.prog i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s}
+.check{display:flex;gap:8px;align-items:flex-start;margin:6px 0;color:var(--ink);font-weight:400}
+.check input{width:auto;min-height:0;margin-top:4px}
+@media (max-width:520px){.row2{grid-template-columns:1fr}.rep .d{display:none}}
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MiSalud">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#EEF3F2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1A1C" media="(prefers-color-scheme: dark)">
+</head>
+<body>
+<div class="auth" id="authView"><p class="muted">Cargando…</p></div>
+
+<div class="wrap" id="appView" hidden>
+  <header class="top">
+    <h1>Mi<span>Salud</span></h1>
+    <button class="iconbtn" id="setBtn" aria-label="Ajustes">⚙︎ Ajustes</button>
+  </header>
+  <div class="people" id="people"></div>
+  <main id="main"></main>
+</div>
+<button class="fab" id="fab" hidden>+ Informe</button>
+<div class="toast" id="toast" role="status"></div>
+
+<dialog id="dlg"><div class="sheet" id="dlgBody"></div></dialog>
+<div class="show" id="show" hidden></div>
+
+<input type="file" id="pickCam" accept="image/*" capture="environment" hidden>
+<input type="file" id="pickFiles" accept="image/*,application/pdf" multiple hidden>
+<input type="file" id="pickNotes" webkitdirectory multiple hidden>
+
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const p2=n=>String(n).padStart(2,'0');
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),2800)}
+const fmtDate=d=>{if(!d)return '';const [y,m,dd]=d.slice(0,10).split('-');return `${dd}/${m}/${y}`};
+const uid=()=>crypto.randomUUID();
+
+// ---- servidor: proyecto privado de Supabase (el mismo que Mis gastos) ----
+// Datos públicos del proyecto. Los informes solo los ven las cuentas de la tabla "miembros".
+const SB_URL='https://fmkkvbnmsonwzgbtkruo.supabase.co', SB_KEY='sb_publishable_PGetJmCg55SdJnhs8pkvCA_lczsnIvo';
+const BUCKET='misalud';
+const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storageKey:'misalud.auth'}});
+function errTxt(e){const m=String(e?.message||e||'');
+  if(/Failed to fetch|NetworkError|Load failed/i.test(m))return 'sin conexión';
+  if(/row-level security|permission denied|Sin permiso/i.test(m))return 'tu cuenta no tiene permiso';
+  return m||'error'}
+
+// ---- datos en memoria ----
+let ME=null, P=[], C=[], I=[], F=[], Z=[], aiOK=false;
+let cur={persona:null};
+async function q(p){const {data,error}=await p;if(error)throw error;return data}
+async function loadAll(){
+  const [mi,p,c,i,f,z]=await Promise.all([
+    sb.rpc('es_miembro'),
+    sb.from('salud_personas').select('*').order('orden').order('creado'),
+    sb.from('salud_carpetas').select('*').order('orden').order('nombre'),
+    sb.from('salud_informes').select('*'),
+    sb.from('salud_archivos').select('*').order('orden'),
+    sb.from('salud_pautas').select('*').order('creado')]);
+  if(mi.error)throw mi.error;if(mi.data!==true)throw new Error('Sin permiso');
+  for(const r of [p,c,i,f,z])if(r.error)throw r.error;
+  P=p.data;C=c.data;I=i.data;F=f.data;Z=z.data;
+  if(!P.find(x=>x.id===cur.persona))cur.persona=(P.find(x=>x.user_id===ME?.id)||P[0])?.id||null;
+}
+const persona=id=>P.find(x=>x.id===id);
+const carpeta=id=>C.find(x=>x.id===id);
+const informe=id=>I.find(x=>x.id===id);
+const filesOf=id=>F.filter(x=>x.informe_id===id).sort((a,b)=>a.orden-b.orden);
+const pautasOf=id=>Z.filter(x=>x.informe_id===id);
+const subfolders=(pid,parent)=>C.filter(x=>x.persona_id===pid&&(x.padre_id||null)===(parent||null)).sort((a,b)=>a.orden-b.orden||a.nombre.localeCompare(b.nombre,'es'));
+function folderPath(id){const out=[];let c=carpeta(id);while(c){out.unshift(c);c=carpeta(c.padre_id)}return out}
+function descendants(id){const out=[id];for(const c of C.filter(x=>x.padre_id===id))out.push(...descendants(c.id));return out}
+const sortRep=(a,b)=>(b.fecha||'').localeCompare(a.fecha||'')||b.creado.localeCompare(a.creado);
+function folderOptions(pid,sel){
+  const rows=['<option value="">(sin carpeta)</option>'];
+  const walk=(parent,depth)=>{for(const c of subfolders(pid,parent)){rows.push(`<option value="${c.id}"${c.id===sel?' selected':''}>${'— '.repeat(depth)}${esc(c.nombre)}</option>`);walk(c.id,depth+1)}};
+  walk(null,0);return rows.join('');
+}
+
+// ---- navegación (con el botón atrás del móvil) ----
+// #c/<carpeta>  #i/<informe>  #p/<persona>  (vacío = raíz de la persona actual)
+function go(h){if(location.hash!=='#'+h)location.hash=h;else render()}
+addEventListener('hashchange',()=>render());
+function route(){const [k,id]=location.hash.slice(1).split('/');return{k,id}}
+
+function render(){
+  if($('appView').hidden)return;
+  closeShow(true);
+  const r=route();
+  if(r.k==='i'&&informe(r.id))cur.persona=informe(r.id).persona_id;
+  if(r.k==='c'&&carpeta(r.id))cur.persona=carpeta(r.id).persona_id;
+  if(r.k==='p'&&persona(r.id))cur.persona=r.id;
+  $('people').innerHTML=P.map(p=>`<button class="chip" data-persona="${p.id}" aria-pressed="${p.id===cur.persona}">${esc(p.nombre)}</button>`).join('');
+  $('fab').hidden=!P.length||r.k==='i';
+  if(!P.length)return renderWelcome();
+  if(r.k==='i'&&informe(r.id))return renderInforme(informe(r.id));
+  renderFolder(r.k==='c'&&carpeta(r.id)?r.id:null);
+}
+$('people').onclick=e=>{const b=e.target.closest('[data-persona]');if(b)go('p/'+b.dataset.persona)};
+
+function renderWelcome(){
+  $('main').innerHTML=`<div class="panel"><h2>¡Bienvenido a MiSalud!</h2>
+  <p>Primero, dime para quién vas a guardar informes. Empieza por ti; después podrás añadir a tu mujer o a quien quieras desde <b>Ajustes</b>.</p>
+  <form id="welcomeF"><label>Nombre<input name="n" required maxlength="60" placeholder="Por ejemplo: Marco"></label>
+  <button class="btn primary" style="margin-top:14px">Empezar</button></form></div>`;
+  $('welcomeF').onsubmit=async e=>{e.preventDefault();const n=new FormData(e.target).get('n').trim();if(!n)return;
+    try{const row=await q(sb.from('salud_personas').insert({nombre:n,user_id:ME.id,orden:0}).select().single());P.push(row);go('p/'+row.id)}catch(x){toast('No se pudo guardar: '+errTxt(x))}};
+}
+
+let searchTxt='';
+function renderFolder(fid){
+  const pid=cur.persona, path=fid?folderPath(fid):[];
+  const subs=subfolders(pid,fid);
+  const reps=I.filter(x=>x.persona_id===pid&&(x.carpeta_id||null)===(fid||null)).sort(sortRep);
+  const count=id=>{const ids=new Set(descendants(id));return I.filter(x=>ids.has(x.carpeta_id)).length};
+  const crumbs=[`<a href="#p/${pid}">${esc(persona(pid).nombre)}</a>`,...path.map((c,i)=>i===path.length-1?`<b>${esc(c.nombre)}</b>`:`<a href="#c/${c.id}">${esc(c.nombre)}</a>`)].join(' › ');
+  let html='';
+  if(!fid)html+=renderUpcoming(pid);
+  html+=`<input class="search" id="search" type="search" placeholder="Buscar en los informes de ${esc(persona(pid).nombre)}…" value="${esc(searchTxt)}">
+  <div id="results"></div><div id="browse">
+  <div class="crumbs">${crumbs}</div>
+  <div class="actions"><button class="btn ghost" id="newFolder">+ Carpeta</button>${fid?`<button class="btn ghost" id="editFolder">Cambiar nombre o mover</button><button class="btn danger" id="delFolder">Borrar carpeta</button>`:''}</div>`;
+  if(subs.length)html+=`<div class="grid">${subs.map(c=>`<button class="folder" data-folder="${c.id}"><span class="n">📁 ${esc(c.nombre)}</span><span class="c">${count(c.id)} informe${count(c.id)===1?'':'s'}</span></button>`).join('')}</div>`;
+  html+=reps.length?`<div class="list">${reps.map(repRow).join('')}</div>`:(subs.length?'':`<p class="empty">Aquí aún no hay nada. Crea una carpeta (por ejemplo «Traumatólogo» o «Analíticas») o añade un informe con el botón <b>+ Informe</b>.</p>`);
+  html+='</div>';
+  $('main').innerHTML=html;
+  const s=$('search');s.oninput=()=>{searchTxt=s.value;showSearch(pid)};if(searchTxt)showSearch(pid);
+  $('main').onclick=e=>{
+    const f=e.target.closest('[data-folder]');if(f)return go('c/'+f.dataset.folder);
+    const r=e.target.closest('[data-rep]');if(r)return go('i/'+r.dataset.rep);
+    if(e.target.id==='newFolder')return folderDialog(null,fid);
+    if(e.target.id==='editFolder')return folderDialog(fid);
+    if(e.target.id==='delFolder')return delFolder(fid);
+    const cal=e.target.closest('[data-cal]');if(cal)return addToCalendar(Z.find(z=>z.id===cal.dataset.cal));
+  };
+  cur.folder=fid;
+}
+function repRow(r){
+  const fs=filesOf(r.id), path=r.carpeta_id?folderPath(r.carpeta_id).map(c=>c.nombre).join(' › '):'';
+  const ico=fs.some(f=>f.tipo==='application/pdf')?'📄':fs.length?'🩺':'📝';
+  const sub=[r.medico,r.centro,path].filter(Boolean).join(' · ');
+  return `<button class="rep" data-rep="${r.id}"><span class="ico">${ico}</span><span><span class="t">${esc(r.titulo||'Informe sin título')}</span>${r.ia_evaluacion?'<span class="tag">IA</span>':''}<br><span class="s">${esc(sub)}${fs.length?` · ${fs.length} archivo${fs.length===1?'':'s'}`:''}</span></span><span class="d">${fmtDate(r.fecha)}</span></button>`;
+}
+function showSearch(pid){
+  const t=searchTxt.trim().toLowerCase();
+  $('browse').hidden=!!t;
+  if(!t){$('results').innerHTML='';return}
+  const words=t.split(/\s+/);
+  const hits=I.filter(x=>x.persona_id===pid).filter(x=>{
+    const hay=[x.titulo,x.medico,x.centro,x.notas,x.ia_evaluacion,x.carpeta_id?folderPath(x.carpeta_id).map(c=>c.nombre).join(' '):'',...pautasOf(x.id).map(z=>z.titulo)].join(' ').toLowerCase();
+    return words.every(w=>hay.includes(w))}).sort(sortRep);
+  $('results').innerHTML=hits.length?`<div class="list">${hits.map(repRow).join('')}</div>`:'<p class="empty">No hay informes que coincidan.</p>';
+}
+
+// Próximas citas y tratamientos en curso de la persona
+function pautaFin(z){if(!z.inicio)return null;const s=new Date(z.inicio);if(z.tipo==='medicamento')return z.dias?new Date(s.getTime()+z.dias*864e5):null;return s}
+function renderUpcoming(pid){
+  const now=Date.now();
+  const mine=Z.filter(z=>informe(z.informe_id)?.persona_id===pid&&z.inicio);
+  const act=mine.filter(z=>{const s=new Date(z.inicio).getTime(),f=pautaFin(z);
+    if(z.tipo==='medicamento')return s<=now+7*864e5&&(f?f.getTime()>=now:s>=now-60*864e5);
+    return s>=now-864e5}).sort((a,b)=>a.inicio.localeCompare(b.inicio)).slice(0,6);
+  if(!act.length)return '';
+  return `<div class="panel"><h2>Próximamente y en curso</h2>${act.map(z=>`<div class="pauta"><div class="t">${pautaIcon(z)} ${esc(z.titulo)}${z.dosis?` · ${esc(z.dosis)}`:''}</div><div class="small muted">${esc(pautaTxt(z))} · <a href="#i/${z.informe_id}">${esc(informe(z.informe_id).titulo||'informe')}</a></div></div>`).join('')}</div>`;
+}
+const pautaIcon=z=>({medicamento:'💊',cita:'📅',prueba:'🧪',otro:'📌'})[z.tipo]||'📌';
+function fmtDT(iso){if(!iso)return '';const d=new Date(iso);return `${p2(d.getDate())}/${p2(d.getMonth()+1)}/${d.getFullYear()} ${p2(d.getHours())}:${p2(d.getMinutes())}`}
+function pautaTxt(z){
+  const parts=[];
+  if(z.tipo==='medicamento'){if(z.cada_horas)parts.push(`cada ${+z.cada_horas} h`);if(z.dias)parts.push(`durante ${z.dias} día${z.dias==1?'':'s'}`);if(z.inicio)parts.push(`desde ${fmtDT(z.inicio)}`)}
+  else if(z.inicio)parts.push(fmtDT(z.inicio));
+  return parts.join(', ')||'sin fecha';
+}
+
+// ---- carpetas ----
+function folderDialog(id,parent){
+  const c=id?carpeta(id):null, pid=cur.persona;
+  const opts=['<option value="">(dentro de ninguna: arriba del todo)</option>'];
+  const bad=new Set(id?descendants(id):[]);
+  const walk=(par,d)=>{for(const x of subfolders(pid,par)){if(!bad.has(x.id))opts.push(`<option value="${x.id}"${x.id===(c?c.padre_id:parent)?' selected':''}>${'— '.repeat(d)}${esc(x.nombre)}</option>`);walk(x.id,d+1)}};walk(null,0);
+  openDlg(`<h2>${c?'Carpeta':'Carpeta nueva'}</h2><form id="fF"><label>Nombre<input name="n" required maxlength="80" value="${esc(c?.nombre||'')}" placeholder="Por ejemplo: Ortopédico"></label>
+  <label>Dentro de<select name="p">${opts.join('')}</select></label><p class="err"></p>
+  <div class="btns"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary">Guardar</button></div></form>`);
+  $('fF').onsubmit=async e=>{e.preventDefault();const fd=Object.fromEntries(new FormData(e.target));
+    const row={nombre:fd.n.trim(),padre_id:fd.p||null};
+    try{if(c){const r=await q(sb.from('salud_carpetas').update(row).eq('id',c.id).select().single());C=C.map(x=>x.id===c.id?r:x)}
+      else{const r=await q(sb.from('salud_carpetas').insert({...row,persona_id:pid}).select().single());C.push(r)}
+      closeDlg();render()}catch(x){e.target.querySelector('.err').textContent='No se pudo guardar: '+errTxt(x)}};
+}
+async function delFolder(id){
+  const ids=new Set(descendants(id));
+  if(I.some(x=>ids.has(x.carpeta_id))||C.some(x=>x.padre_id===id))return toast('Solo se pueden borrar carpetas vacías. Mueve o borra antes lo que tiene dentro.');
+  if(!confirm(`¿Borrar la carpeta «${carpeta(id).nombre}»?`))return;
+  try{await q(sb.from('salud_carpetas').delete().eq('id',id));const par=carpeta(id).padre_id;C=C.filter(x=>x.id!==id);go(par?'c/'+par:'p/'+cur.persona)}catch(x){toast('No se pudo borrar: '+errTxt(x))}
+}
+
+// ---- informes ----
+$('fab').onclick=()=>informeDialog(null);
+function informeDialog(id){
+  const r=id?informe(id):null, pid=r?r.persona_id:cur.persona;
+  const today=new Date();const td=`${today.getFullYear()}-${p2(today.getMonth()+1)}-${p2(today.getDate())}`;
+  openDlg(`<h2>${r?'Editar informe':'Informe nuevo'}</h2><form id="iF">
+  <div class="row2"><label>De<select name="persona">${P.map(p=>`<option value="${p.id}"${p.id===pid?' selected':''}>${esc(p.nombre)}</option>`).join('')}</select></label>
+  <label>Carpeta<select name="carpeta">${folderOptions(pid,r?r.carpeta_id:cur.folder)}</select></label></div>
+  <label>Título<input name="titulo" maxlength="200" value="${esc(r?.titulo||'')}" placeholder="Por ejemplo: Revisión hombro izquierdo"></label>
+  <div class="row2"><label>Fecha<input name="fecha" type="date" value="${esc(r?r.fecha||'':td)}"></label>
+  <label>Médico o especialidad<input name="medico" maxlength="200" value="${esc(r?.medico||'')}"></label></div>
+  <label>Centro<input name="centro" maxlength="200" value="${esc(r?.centro||'')}" placeholder="Hospital, clínica…"></label>
+  <label>Notas<textarea name="notas" placeholder="Lo que os dijo el médico, dudas, etc.">${esc(r?.notas||'')}</textarea></label>
+  ${r?'':`<p class="small muted" style="margin-top:12px">Las fotos o el PDF los añades en el paso siguiente.</p>`}
+  <p class="err"></p><div class="btns"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary">${r?'Guardar':'Crear y añadir fotos'}</button></div></form>`);
+  const f=$('iF');
+  f.persona.onchange=()=>{f.carpeta.innerHTML=folderOptions(f.persona.value,null)};
+  f.onsubmit=async e=>{e.preventDefault();const fd=Object.fromEntries(new FormData(f));
+    const row={persona_id:fd.persona,carpeta_id:fd.carpeta||null,titulo:fd.titulo.trim(),fecha:fd.fecha||null,medico:fd.medico.trim(),centro:fd.centro.trim(),notas:fd.notas};
+    try{
+      if(r){const x=await q(sb.from('salud_informes').update({...row,modificado:new Date().toISOString()}).eq('id',r.id).select().single());I=I.map(y=>y.id===r.id?x:y);closeDlg();render()}
+      else{const x=await q(sb.from('salud_informes').insert(row).select().single());I.push(x);closeDlg();go('i/'+x.id);setTimeout(()=>addFilesDialog(x.id),150)}
+    }catch(x){f.querySelector('.err').textContent='No se pudo guardar: '+errTxt(x)}};
+}
+
+const urlCache=new Map();
+async function signed(paths,secs=3600){
+  const need=paths.filter(p=>{const c=urlCache.get(p);return !c||c.exp<Date.now()+60000});
+  if(need.length){const {data,error}=await sb.storage.from(BUCKET).createSignedUrls(need,secs);if(error)throw error;
+    for(const d of data)if(d.signedUrl)urlCache.set(d.path,{url:d.signedUrl,exp:Date.now()+secs*1000})}
+  return paths.map(p=>urlCache.get(p)?.url||'');
+}
+
+function renderInforme(r){
+  cur.folder=r.carpeta_id;
+  const fs=filesOf(r.id), zs=pautasOf(r.id), p=persona(r.persona_id);
+  const path=r.carpeta_id?folderPath(r.carpeta_id):[];
+  const crumbs=[`<a href="#p/${p.id}">${esc(p.nombre)}</a>`,...path.map(c=>`<a href="#c/${c.id}">${esc(c.nombre)}</a>`)].join(' › ');
+  const L=r.ia_lectura;
+  $('main').innerHTML=`<div class="crumbs">${crumbs}</div>
+  <div class="panel"><h2>${esc(r.titulo||'Informe sin título')}</h2>
+    <dl class="meta">${r.fecha?`<dt>Fecha</dt><dd>${fmtDate(r.fecha)}</dd>`:''}${r.medico?`<dt>Médico</dt><dd>${esc(r.medico)}</dd>`:''}${r.centro?`<dt>Centro</dt><dd>${esc(r.centro)}</dd>`:''}</dl>
+    ${r.notas?`<pre class="txt">${esc(r.notas)}</pre>`:''}
+    <div class="actions"><button class="btn primary" data-a="show"${fs.length||r.notas?'':' disabled'}>👁 Enseñar</button><button class="btn" data-a="add">+ Fotos o PDF</button><button class="btn" data-a="share"${fs.length?'':' disabled'}>Compartir (24 h)</button><button class="btn ghost" data-a="edit">Editar</button><button class="btn danger" data-a="del">Borrar</button></div>
+    <div class="thumbs" id="thumbs">${fs.map((f,i)=>`<button class="thumb" data-file="${i}" title="${esc(f.nombre)}">${f.tipo.startsWith('image/')?`<img alt="${esc(f.nombre)}" data-path="${esc(f.ruta)}">`:`<span class="pdf">PDF<br>${esc(f.nombre)}</span>`}</button>`).join('')}</div>
+    ${fs.length?'<p class="small muted">Pulsa una imagen para verla grande. Mantén pulsada para borrarla.</p>':''}
+  </div>
+  <div class="panel"><h2>Pautas y recordatorios</h2>
+    ${zs.length?zs.map(z=>`<div class="pauta"><div class="t">${pautaIcon(z)} ${esc(z.titulo)}${z.dosis?` · ${esc(z.dosis)}`:''}</div><div class="small muted">${esc(pautaTxt(z))}</div>${z.detalle?`<div class="small">${esc(z.detalle)}</div>`:''}
+      <div class="row"><button class="btn primary" data-cal="${z.id}"${z.inicio?'':' disabled title="Pon fecha y hora para poder añadirlo al calendario"'}>📅 Añadir a mi calendario</button><button class="btn ghost" data-editz="${z.id}">Editar</button><button class="btn danger" data-delz="${z.id}">Borrar</button></div></div>`).join(''):'<p class="muted">Sin pautas. Añade los medicamentos o la próxima cita para tenerlos a mano y pasarlos al calendario.</p>'}
+    <button class="btn" data-a="newz">+ Pauta o cita</button>
+  </div>
+  <div class="panel" id="iaPanel"><h2>Inteligencia artificial</h2>
+    ${aiOK?`<p class="small muted">Solo se usa si pulsas uno de estos botones. Se envían las fotos, el PDF y las notas de este informe a la IA de Anthropic (Claude) para leerlos; no se guardan allí para entrenar.</p>
+    <div class="actions"><button class="btn" data-a="leer"${fs.length||r.notas?'':' disabled'}>🔎 Leer con IA</button><button class="btn" data-a="evaluar"${fs.length||r.notas?'':' disabled'}>💬 Explicarme el informe</button></div>`
+    :'<p class="small muted">La IA no está activada en el servidor todavía. Cuando lo esté, aquí podrás pedir que lea el informe o que te lo explique.</p>'}
+    <div id="iaOut">${L?lecturaHTML(L,r):''}${r.ia_evaluacion?`<div class="ia"><h3>Explicación de la IA ${r.ia_fecha?`<span class="small muted">(${fmtDT(r.ia_fecha)})</span>`:''}</h3>${md(r.ia_evaluacion)}</div><p class="note">Es una explicación orientativa hecha por una IA. No sustituye al médico: ante cualquier duda, pregúntale a él.</p>`:''}</div>
+  </div>`;
+  // miniaturas
+  const imgs=[...$('thumbs').querySelectorAll('img[data-path]')];
+  if(imgs.length)signed(imgs.map(i=>i.dataset.path)).then(us=>us.forEach((u,k)=>imgs[k].src=u)).catch(()=>{});
+  let lp=null;
+  $('thumbs').onpointerdown=e=>{const b=e.target.closest('[data-file]');if(!b)return;lp=setTimeout(()=>{lp='done';delFile(fs[+b.dataset.file])},650)};
+  $('thumbs').onpointerup=$('thumbs').onpointerleave=()=>{if(lp&&lp!=='done')clearTimeout(lp)};
+  $('main').onclick=e=>{
+    const fb=e.target.closest('[data-file]');if(fb){if(lp==='done'){lp=null;return}return openShow(r,+fb.dataset.file)}
+    const cal=e.target.closest('[data-cal]');if(cal)return addToCalendar(Z.find(z=>z.id===cal.dataset.cal));
+    const ez=e.target.closest('[data-editz]');if(ez)return pautaDialog(r.id,ez.dataset.editz);
+    const dz=e.target.closest('[data-delz]');if(dz)return delPauta(dz.dataset.delz);
+    const a=e.target.closest('[data-a]')?.dataset.a;
+    if(a==='show')openShow(r,0);
+    if(a==='add')addFilesDialog(r.id);
+    if(a==='edit')informeDialog(r.id);
+    if(a==='del')delInforme(r);
+    if(a==='share')shareInforme(r);
+    if(a==='newz')pautaDialog(r.id,null);
+    if(a==='leer'||a==='evaluar')runAI(r,a);
+    if(a==='applyL')applyLectura(r);
+  };
+}
+
+async function delInforme(r){
+  if(!confirm(`¿Borrar el informe «${r.titulo||'sin título'}» con sus ${filesOf(r.id).length} archivos y sus pautas? No se puede deshacer.`))return;
+  try{const paths=filesOf(r.id).map(f=>f.ruta);if(paths.length){const {error}=await sb.storage.from(BUCKET).remove(paths);if(error)throw error}
+    await q(sb.from('salud_informes').delete().eq('id',r.id));
+    I=I.filter(x=>x.id!==r.id);F=F.filter(x=>x.informe_id!==r.id);Z=Z.filter(x=>x.informe_id!==r.id);
+    toast('Informe borrado');go(r.carpeta_id?'c/'+r.carpeta_id:'p/'+r.persona_id)}catch(x){toast('No se pudo borrar: '+errTxt(x))}
+}
+async function delFile(f){
+  if(!confirm(`¿Borrar «${f.nombre}» de este informe?`))return;
+  try{const {error}=await sb.storage.from(BUCKET).remove([f.ruta]);if(error)throw error;await q(sb.from('salud_archivos').delete().eq('id',f.id));F=F.filter(x=>x.id!==f.id);render()}catch(x){toast('No se pudo borrar: '+errTxt(x))}
+}
+
+// ---- subir fotos y PDF ----
+function addFilesDialog(id){
+  openDlg(`<h2>Añadir fotos o PDF</h2><p class="muted">Haz una foto de cada hoja del informe, o elige fotos o PDF que ya tengas.</p>
+  <div class="btns" style="flex-direction:column"><button class="btn primary" id="bCam">📷 Hacer foto</button><button class="btn" id="bFiles">🖼 Elegir fotos o PDF</button></div>
+  <div id="upMsg" class="small muted" style="margin-top:12px"></div><div class="prog" id="upProg" hidden><i></i></div>
+  <div class="btns"><button class="btn ghost" data-close>Hecho</button></div>`);
+  $('bCam').onclick=()=>pick('pickCam',id);$('bFiles').onclick=()=>pick('pickFiles',id);
+}
+let pickTarget=null;
+function pick(inp,id){pickTarget=id;$(inp).value='';$(inp).click()}
+for(const k of ['pickCam','pickFiles'])$(k).onchange=async e=>{const files=[...e.target.files];if(!files.length||!pickTarget)return;await uploadFiles(pickTarget,files,(i,n,name)=>{const m=$('upMsg');if(m){m.textContent=i<n?`Subiendo ${i+1} de ${n}: ${name}…`:`✓ ${n} archivo${n===1?'':'s'} añadido${n===1?'':'s'}. Puedes añadir más o pulsar Hecho.`;const pr=$('upProg');pr.hidden=false;pr.firstChild.style.width=(i/n*100)+'%'}});render()};
+
+// Las fotos se reducen a un tamaño razonable (se leen bien y ocupan poco). Los PDF se suben tal cual.
+async function prepImage(file){
+  try{
+    const bmp=await createImageBitmap(file,{imageOrientation:'from-image'});
+    const max=2400,sc=Math.min(1,max/Math.max(bmp.width,bmp.height));
+    if(sc===1&&file.type==='image/jpeg'&&file.size<2.5e6)return {blob:file,type:'image/jpeg'};
+    const cv=document.createElement('canvas');cv.width=Math.round(bmp.width*sc);cv.height=Math.round(bmp.height*sc);
+    cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);
+    const blob=await new Promise(res=>cv.toBlob(res,'image/jpeg',.85));return {blob,type:'image/jpeg'};
+  }catch(e){return {blob:file,type:file.type||'application/octet-stream'}}
+}
+async function uploadFiles(id,files,progress){
+  let orden=filesOf(id).reduce((m,f)=>Math.max(m,f.orden+1),0), ok=0;
+  for(let i=0;i<files.length;i++){
+    const f=files[i];progress&&progress(i,files.length,f.name);
+    try{
+      const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);
+      const isImg=!isPdf&&(f.type.startsWith('image/')||/\.(jpe?g|png|heic|heif|webp|gif|tiff?)$/i.test(f.name));
+      if(!isPdf&&!isImg){toast(`«${f.name}» no es una foto ni un PDF; no se ha subido`);continue}
+      const {blob,type}=isPdf?{blob:f,type:'application/pdf'}:await prepImage(f);
+      const ext=type==='application/pdf'?'pdf':type==='image/png'?'png':'jpg';
+      const ruta=`${id}/${uid()}.${ext}`;
+      const {error}=await sb.storage.from(BUCKET).upload(ruta,blob,{contentType:type,upsert:false});if(error)throw error;
+      const nombre=(f.name&&!/^image\.\w+$/i.test(f.name))?f.name.replace(/\.(heic|heif)$/i,'.jpg'):`Foto ${orden+1}.${ext}`;
+      const row=await q(sb.from('salud_archivos').insert({informe_id:id,ruta,nombre,tipo:type,tamano:blob.size,orden:orden++}).select().single());
+      F.push(row);ok++;
+    }catch(x){toast(`No se pudo subir «${f.name}»: ${errTxt(x)}`)}
+  }
+  progress&&progress(files.length,files.length,'');
+  return ok;
+}
+
+// ---- modo enseñar ----
+async function openShow(r,start){
+  const fs=filesOf(r.id), p=persona(r.persona_id);
+  const el=$('show');el.hidden=false;document.body.style.overflow='hidden';
+  el.innerHTML=`<div class="bar"><span class="t">${esc(p.nombre)} · ${esc(r.titulo||'Informe')}${r.fecha?' · '+fmtDate(r.fecha):''}</span><button id="showX">Cerrar</button></div><div id="showBody"><p class="txt">Cargando…</p></div>`;
+  $('showX').onclick=()=>history.back();
+  history.pushState({show:1},'');
+  try{
+    const urls=await signed(fs.map(f=>f.ruta));
+    $('showBody').innerHTML=fs.map((f,i)=>f.tipo.startsWith('image/')?`<img id="sh${i}" src="${urls[i]}" alt="${esc(f.nombre)}">`:`<a class="pdfbtn" id="sh${i}" href="${urls[i]}" target="_blank" rel="noopener">📄 Abrir ${esc(f.nombre)}</a>`).join('')+(r.notas&&!fs.length?`<div class="txt">${esc(r.notas)}</div>`:'');
+    if(start)$('sh'+start)?.scrollIntoView();
+  }catch(x){$('showBody').innerHTML=`<p class="txt">No se pudieron cargar los archivos: ${esc(errTxt(x))}</p>`}
+}
+function closeShow(silent){const el=$('show');if(el.hidden)return;el.hidden=true;el.innerHTML='';document.body.style.overflow=''}
+addEventListener('popstate',()=>{if(!$('show').hidden){closeShow();}});
+
+// ---- compartir con enlaces que caducan ----
+async function shareInforme(r){
+  if(!confirm('Se creará un enlace a cada archivo de este informe. Quien tenga los enlaces podrá verlos durante 24 horas. ¿Seguir?'))return;
+  try{
+    const fs=filesOf(r.id);const {data,error}=await sb.storage.from(BUCKET).createSignedUrls(fs.map(f=>f.ruta),86400);if(error)throw error;
+    const txt=`${r.titulo||'Informe médico'}${r.fecha?' ('+fmtDate(r.fecha)+')':''}\nEnlaces válidos 24 horas:\n`+data.map((d,i)=>`${fs[i].nombre}: ${d.signedUrl}`).join('\n');
+    if(navigator.share){try{await navigator.share({title:r.titulo||'Informe médico',text:txt});return}catch(e){if(e.name==='AbortError')return}}
+    await navigator.clipboard.writeText(txt);toast('Enlaces copiados: pégalos en un mensaje o correo');
+  }catch(x){toast('No se pudo compartir: '+errTxt(x))}
+}
+
+// ---- pautas ----
+function toLocalInput(iso){if(!iso)return '';const d=new Date(iso);return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}`}
+function pautaDialog(iid,zid,pre){
+  const z=zid?Z.find(x=>x.id===zid):(pre||{tipo:'medicamento'});
+  openDlg(`<h2>${zid?'Editar pauta':'Pauta o cita nueva'}</h2><form id="zF">
+  <label>Tipo<select name="tipo">${[['medicamento','💊 Medicamento'],['cita','📅 Cita o revisión'],['prueba','🧪 Prueba'],['otro','📌 Otro']].map(([v,t])=>`<option value="${v}"${v===z.tipo?' selected':''}>${t}</option>`).join('')}</select></label>
+  <label>Qué es<input name="titulo" required maxlength="200" value="${esc(z.titulo||'')}" placeholder="Por ejemplo: Ibuprofeno 600"></label>
+  <div class="med"><label>Dosis<input name="dosis" maxlength="200" value="${esc(z.dosis||'')}" placeholder="1 comprimido"></label>
+  <div class="row2"><label>Cada cuántas horas<input name="cada_horas" type="number" min="0.5" step="0.5" value="${esc(z.cada_horas||'')}" placeholder="8"></label>
+  <label>Durante cuántos días<input name="dias" type="number" min="1" step="1" value="${esc(z.dias||'')}" placeholder="7"></label></div></div>
+  <label><span class="lblIni">Primera toma</span> (día y hora)<input name="inicio" type="datetime-local" value="${esc(toLocalInput(z.inicio))}"></label>
+  <label>Indicaciones<textarea name="detalle" placeholder="Con comida, en ayunas…">${esc(z.detalle||'')}</textarea></label>
+  <p class="err"></p><div class="btns"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn primary">Guardar</button></div></form>`);
+  const f=$('zF');const sync=()=>{const m=f.tipo.value==='medicamento';f.querySelector('.med').hidden=!m;f.querySelector('.lblIni').textContent=m?'Primera toma':'Fecha'};f.tipo.onchange=sync;sync();
+  f.onsubmit=async e=>{e.preventDefault();const fd=Object.fromEntries(new FormData(f));const m=fd.tipo==='medicamento';
+    const row={tipo:fd.tipo,titulo:fd.titulo.trim(),dosis:m?fd.dosis.trim():'',cada_horas:m&&fd.cada_horas?+fd.cada_horas:null,dias:m&&fd.dias?Math.round(+fd.dias):null,inicio:fd.inicio?new Date(fd.inicio).toISOString():null,detalle:fd.detalle.trim()};
+    try{if(zid){const x=await q(sb.from('salud_pautas').update(row).eq('id',zid).select().single());Z=Z.map(y=>y.id===zid?x:y)}
+      else{const x=await q(sb.from('salud_pautas').insert({...row,informe_id:iid}).select().single());Z.push(x)}
+      closeDlg();render();toast(row.inicio?'Guardado. Pulsa «Añadir a mi calendario» para el recordatorio.':'Guardado')}catch(x){f.querySelector('.err').textContent='No se pudo guardar: '+errTxt(x)}};
+}
+async function delPauta(id){if(!confirm('¿Borrar esta pauta? (Si ya la añadiste a tu calendario, allí se queda; bórrala también allí si quieres.)'))return;
+  try{await q(sb.from('salud_pautas').delete().eq('id',id));Z=Z.filter(x=>x.id!==id);render()}catch(x){toast('No se pudo borrar: '+errTxt(x))}}
+
+// ---- calendario: archivo .ics que abre el calendario del móvil o del ordenador de quien lo pulsa ----
+function icsDate(d){return `${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}T${p2(d.getHours())}${p2(d.getMinutes())}00`}
+function icsEsc(s){return String(s||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/[,;]/g,m=>'\\'+m)}
+function icsFold(line){const out=[];let s=line;while(s.length>73){out.push(s.slice(0,73));s=' '+s.slice(73)}out.push(s);return out.join('\r\n')}
+function buildICS(z){
+  const r=informe(z.informe_id), p=persona(r.persona_id), start=new Date(z.inicio);
+  const med=z.tipo==='medicamento';
+  const title=med?`💊 ${z.titulo}${z.dosis?' – '+z.dosis:''} (${p.nombre})`:`${pautaIcon(z)} ${z.titulo} (${p.nombre})`;
+  const end=new Date(start.getTime()+(med?15:60)*60000);
+  const desc=[z.detalle,`Informe: ${r.titulo||''}${r.fecha?' ('+fmtDate(r.fecha)+')':''}`,'Guardado en MiSalud'].filter(Boolean).join('\n');
+  const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//MiSalud//ES','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT',
+    `UID:${z.id}@misalud`,`DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').slice(0,15)}Z`,
+    `DTSTART:${icsDate(start)}`,`DTEND:${icsDate(end)}`,`SUMMARY:${icsEsc(title)}`,`DESCRIPTION:${icsEsc(desc)}`];
+  if(r.centro&&!med)L.push(`LOCATION:${icsEsc(r.centro)}`);
+  if(med&&z.cada_horas){
+    const h=+z.cada_horas;
+    const count=z.dias?Math.max(1,Math.ceil(z.dias*24/h)):null;
+    const rule=(h%24===0)?`FREQ=DAILY;INTERVAL=${h/24}`:(Number.isInteger(h)?`FREQ=HOURLY;INTERVAL=${h}`:`FREQ=MINUTELY;INTERVAL=${Math.round(h*60)}`);
+    L.push(`RRULE:${rule}${count?';COUNT='+count:''}`);
+  }
+  const alarms=med?['PT0M']:['P1D','PT2H'];
+  for(const a of alarms)L.push('BEGIN:VALARM','ACTION:DISPLAY',`DESCRIPTION:${icsEsc(title)}`,`TRIGGER:-${a}`,'END:VALARM');
+  L.push('END:VEVENT','END:VCALENDAR');
+  return L.map(icsFold).join('\r\n');
+}
+async function addToCalendar(z){
+  if(!z?.inicio)return toast('Pon primero la fecha y la hora');
+  const ics=buildICS(z), name=(z.titulo.replace(/[^\p{L}\p{N} ]+/gu,'').trim()||'recordatorio')+'.ics';
+  const file=new File([ics],name,{type:'text/calendar'});
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(isIOS){
+    // En el iPhone, el calendario se abre solo si el archivo llega desde una dirección web:
+    // se guarda un momento en el almacén privado y se abre con un enlace que caduca en 10 minutos.
+    try{const ruta=`calendario/${z.id}.ics`;
+      const {error}=await sb.storage.from(BUCKET).upload(ruta,new Blob([ics],{type:'text/calendar'}),{contentType:'text/calendar',upsert:true});if(error)throw error;
+      const {data,error:e2}=await sb.storage.from(BUCKET).createSignedUrl(ruta,600);if(e2)throw e2;
+      location.href=data.signedUrl;
+    }catch(x){toast('No se pudo preparar el recordatorio: '+errTxt(x))}
+    return;
+  }
+  const a=document.createElement('a');a.href=URL.createObjectURL(file);a.download=name;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);
+  toast('Abre el archivo descargado para añadirlo a tu calendario');
+}
+
+// ---- IA (solo si se pulsa) ----
+async function askAI(body){
+  const {data:{session}}=await sb.auth.getSession();
+  const r=await fetch(SB_URL+'/functions/v1/misalud-ia',{method:'POST',headers:{'content-type':'application/json',apikey:SB_KEY,authorization:'Bearer '+(session?.access_token||'')},body:JSON.stringify(body)});
+  let j={};try{j=await r.json()}catch(e){}
+  if(!r.ok)throw new Error(j.error||('Error '+r.status));return j;
+}
+async function aiCheck(){try{aiOK=!!(await askAI({kind:'ping'})).ok}catch(e){aiOK=false}}
+async function runAI(r,kind){
+  const ok=confirm(kind==='leer'
+    ?'La IA de Anthropic leerá las fotos, el PDF y las notas de este informe y propondrá los datos y las pautas. Tú decides después qué guardar. ¿Seguir?'
+    :'La IA de Anthropic leerá las fotos, el PDF y las notas de este informe y te lo explicará con palabras sencillas. Es orientativo y no sustituye al médico. ¿Seguir?');
+  if(!ok)return;
+  const out=$('iaOut');out.insertAdjacentHTML('afterbegin',`<p class="muted" id="iaWait">${kind==='leer'?'Leyendo el informe':'Preparando la explicación'}… puede tardar hasta un minuto.</p>`);
+  document.querySelectorAll('#iaPanel [data-a]').forEach(b=>b.disabled=true);
+  try{
+    const j=await askAI({kind,informe_id:r.id});
+    const x=await q(sb.from('salud_informes').select('*').eq('id',r.id).single());I=I.map(y=>y.id===r.id?x:y);
+    render();
+    if(j.omitidos)toast(`Algunos archivos (${j.omitidos}) no se han podido enviar a la IA (formato o tamaño)`);
+    $('iaOut')?.scrollIntoView({behavior:'smooth'});
+  }catch(x){$('iaWait')?.remove();document.querySelectorAll('#iaPanel [data-a]').forEach(b=>b.disabled=false);toast('La IA no ha podido: '+errTxt(x))}
+}
+function lecturaHTML(L,r){
+  const ps=L.pautas||[];
+  return `<div class="ia"><h3>Lo que ha leído la IA</h3>
+  <dl class="meta">${L.titulo?`<dt>Título</dt><dd>${esc(L.titulo)}</dd>`:''}${L.fecha?`<dt>Fecha</dt><dd>${fmtDate(L.fecha)}</dd>`:''}${L.medico?`<dt>Médico</dt><dd>${esc(L.medico)}</dd>`:''}${L.especialidad?`<dt>Especialidad</dt><dd>${esc(L.especialidad)}</dd>`:''}${L.centro?`<dt>Centro</dt><dd>${esc(L.centro)}</dd>`:''}</dl>
+  ${L.resumen?`<p>${esc(L.resumen)}</p>`:''}
+  ${(L.diagnosticos||[]).length?`<p><b>Diagnósticos:</b> ${L.diagnosticos.map(esc).join('; ')}</p>`:''}
+  ${ps.length?`<p><b>Pautas encontradas</b> (marca las que quieras guardar):</p>${ps.map((z,k)=>`<label class="check"><input type="checkbox" data-lp="${k}" checked><span>${pautaIcon(z)} ${esc(z.titulo)}${z.dosis?' · '+esc(z.dosis):''}${z.cada_horas?` · cada ${z.cada_horas} h`:''}${z.dias?` · ${z.dias} días`:''}${z.fecha?` · ${fmtDate(z.fecha)}${z.hora?' '+esc(z.hora):''}`:''}${z.detalle?` — ${esc(z.detalle)}`:''}</span></label>`).join('')}`:'<p class="muted">No ha encontrado medicamentos ni citas.</p>'}
+  <button class="btn primary" data-a="applyL" style="margin-top:8px">Guardar en el informe</button>
+  <p class="small muted">Rellena solo los datos que estén vacíos y añade las pautas marcadas. Después las revisas y les pones la hora de la primera toma.</p></div>`;
+}
+async function applyLectura(r){
+  const L=r.ia_lectura;if(!L)return;
+  const upd={};
+  if(!r.titulo&&L.titulo)upd.titulo=L.titulo;
+  if(!r.fecha&&/^\d{4}-\d{2}-\d{2}$/.test(L.fecha||''))upd.fecha=L.fecha;
+  if(!r.medico&&(L.medico||L.especialidad))upd.medico=[L.medico,L.especialidad].filter(Boolean).join(' · ');
+  if(!r.centro&&L.centro)upd.centro=L.centro;
+  const sel=[...document.querySelectorAll('[data-lp]')].filter(c=>c.checked).map(c=>L.pautas[+c.dataset.lp]);
+  try{
+    if(Object.keys(upd).length){const x=await q(sb.from('salud_informes').update({...upd,modificado:new Date().toISOString()}).eq('id',r.id).select().single());I=I.map(y=>y.id===r.id?x:y)}
+    const rows=sel.map(z=>{let inicio=null;if(/^\d{4}-\d{2}-\d{2}$/.test(z.fecha||'')){const [hh,mm]=/^\d{1,2}:\d{2}$/.test(z.hora||'')?z.hora.split(':'):['9','00'];inicio=new Date(`${z.fecha}T${p2(hh)}:${mm}:00`).toISOString()}
+      return{informe_id:r.id,tipo:z.tipo,titulo:(z.titulo||'Pauta').slice(0,200),dosis:z.tipo==='medicamento'?z.dosis||'':'',cada_horas:z.tipo==='medicamento'&&z.cada_horas>0?z.cada_horas:null,dias:z.tipo==='medicamento'&&z.dias>0?Math.round(z.dias):null,inicio,detalle:z.detalle||''}});
+    if(rows.length){const xs=await q(sb.from('salud_pautas').insert(rows).select());Z.push(...xs)}
+    render();toast(`Guardado${rows.length?`: ${rows.length} pauta${rows.length===1?'':'s'} añadida${rows.length===1?'':'s'}`:''}`);
+  }catch(x){toast('No se pudo guardar: '+errTxt(x))}
+}
+// Markdown sencillo para la explicación de la IA
+function md(s){
+  const lines=esc(s).split('\n');let out='',inList=false;
+  const inl=t=>t.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(^|[^*])\*(?!\s)(.+?)\*/g,'$1<i>$2</i>');
+  for(const l of lines){
+    const h=l.match(/^#{1,4}\s+(.*)/), li=l.match(/^\s*(?:[-*•]|\d+\.)\s+(.*)/);
+    if(li){if(!inList){out+='<ul>';inList=true}out+=`<li>${inl(li[1])}</li>`;continue}
+    if(inList){out+='</ul>';inList=false}
+    if(h)out+=`<h3>${inl(h[1])}</h3>`;else if(l.trim())out+=`<p>${inl(l)}</p>`;
+  }
+  return out+(inList?'</ul>':'');
+}
+
+// ---- ajustes ----
+$('setBtn').onclick=settingsDialog;
+function settingsDialog(){
+  openDlg(`<h2>Ajustes</h2>
+  <h3 style="margin:8px 0 4px;font-size:1rem">Personas</h3>
+  <div id="pList">${P.map(p=>`<div style="display:flex;gap:8px;align-items:center;margin:6px 0"><input value="${esc(p.nombre)}" data-pn="${p.id}" maxlength="60"><button class="iconbtn" data-pdel="${p.id}" title="Borrar">✕</button></div>`).join('')}</div>
+  <div style="display:flex;gap:8px;margin-top:6px"><input id="pNew" placeholder="Añadir persona (por ejemplo, tu mujer)" maxlength="60"><button class="btn" id="pAdd">Añadir</button></div>
+  <h3 style="margin:18px 0 4px;font-size:1rem">Importar desde Notas del Mac</h3>
+  <p class="small muted">Primero se exportan tus notas con el programa del Mac (te lo preparo yo). Después pulsa aquí, elige la carpeta exportada y la persona.</p>
+  <div class="row2"><select id="impP">${P.map(p=>`<option value="${p.id}">${esc(p.nombre)}</option>`).join('')}</select><button class="btn" id="impBtn">Elegir carpeta exportada</button></div>
+  <div id="impMsg" class="small muted" style="margin-top:8px"></div><div class="prog" id="impProg" hidden><i></i></div>
+  <h3 style="margin:18px 0 4px;font-size:1rem">Cuenta</h3>
+  <p class="small muted">Has entrado como ${esc(ME?.email||'')}. IA: ${aiOK?'activada':'no activada en el servidor'}.</p>
+  <div class="btns"><button class="btn danger" id="logoutBtn">Cerrar sesión</button><button class="btn primary" data-close>Hecho</button></div>`);
+  $('pList').onchange=async e=>{const id=e.target.dataset.pn;if(!id)return;const n=e.target.value.trim();if(!n)return;
+    try{const x=await q(sb.from('salud_personas').update({nombre:n}).eq('id',id).select().single());P=P.map(y=>y.id===id?x:y);render();toast('Nombre cambiado')}catch(x){toast('No se pudo: '+errTxt(x))}};
+  $('pList').onclick=async e=>{const id=e.target.dataset.pdel;if(!id)return;
+    const n=I.filter(x=>x.persona_id===id).length;if(n)return toast(`No se puede borrar: tiene ${n} informe${n===1?'':'s'}`);
+    if(!confirm('¿Borrar esta persona (y sus carpetas vacías)?'))return;
+    try{await q(sb.from('salud_personas').delete().eq('id',id));P=P.filter(x=>x.id!==id);C=C.filter(x=>x.persona_id!==id);if(cur.persona===id)cur.persona=P[0]?.id;closeDlg();go(cur.persona?'p/'+cur.persona:'')}catch(x){toast('No se pudo: '+errTxt(x))}};
+  $('pAdd').onclick=async()=>{const n=$('pNew').value.trim();if(!n)return;
+    try{const x=await q(sb.from('salud_personas').insert({nombre:n,orden:P.length}).select().single());P.push(x);closeDlg();go('p/'+x.id);toast(`${n} añadida`)}catch(x){toast('No se pudo: '+errTxt(x))}};
+  $('impBtn').onclick=()=>{$('pickNotes').value='';$('pickNotes').click()};
+  $('logoutBtn').onclick=()=>{if(confirm('¿Cerrar sesión en este dispositivo?')){closeDlg();logout()}};
+}
+
+// ---- importar lo exportado de Notas ----
+// La carpeta exportada tiene un "indice.json" con las carpetas, las notas (título, fecha, texto)
+// y la ruta de los archivos de cada nota. Se puede repetir: lo ya importado no se duplica.
+$('pickNotes').onchange=async e=>{
+  const files=[...e.target.files];const msg=$('impMsg'),prog=$('impProg');if(!files.length)return;
+  const pid=$('impP').value;
+  const byPath=new Map(files.map(f=>[f.webkitRelativePath.split('/').slice(1).join('/'),f]));
+  const idxF=byPath.get('indice.json');
+  if(!idxF){msg.textContent='En esa carpeta no está el archivo «indice.json». Elige la carpeta que creó el programa de exportación.';return}
+  try{
+    const idx=JSON.parse(await idxF.text());if(idx.tipo!=='misalud-notas')throw new Error('Este no es un índice de MiSalud');
+    const notas=idx.notas||[];let hechas=0,saltadas=0,arch=0;prog.hidden=false;
+    const folderId=async ruta=>{let parent=null;for(const nombre of ruta){let c=C.find(x=>x.persona_id===pid&&(x.padre_id||null)===parent&&x.nombre.trim().toLowerCase()===nombre.trim().toLowerCase());
+      if(!c){c=await q(sb.from('salud_carpetas').insert({persona_id:pid,padre_id:parent,nombre:nombre.trim().slice(0,80)}).select().single());C.push(c)}parent=c.id}return parent};
+    for(let i=0;i<notas.length;i++){
+      const n=notas[i];prog.firstChild.style.width=(i/notas.length*100)+'%';msg.textContent=`Importando ${i+1} de ${notas.length}: ${n.titulo}…`;
+      if(I.some(x=>x.origen_ref===n.ref)){saltadas++;continue}
+      const cid=await folderId(n.carpeta||[]);
+      const inf=await q(sb.from('salud_informes').insert({persona_id:pid,carpeta_id:cid,titulo:(n.titulo||'Nota').slice(0,200),fecha:n.fecha||null,notas:n.texto||'',origen:'notas',origen_ref:n.ref}).select().single());
+      I.push(inf);
+      const fs=(n.archivos||[]).map(p=>{const f=byPath.get(p);return f?new File([f],p.split('/').pop(),{type:f.type}):null}).filter(Boolean);
+      if(fs.length)arch+=await uploadFiles(inf.id,fs,(k,t,name)=>{msg.textContent=`Importando ${i+1} de ${notas.length}: ${n.titulo} (archivo ${Math.min(k+1,t)} de ${t})…`});
+      hechas++;
+    }
+    prog.firstChild.style.width='100%';
+    msg.textContent=`✓ Importadas ${hechas} notas con ${arch} archivos.${saltadas?` ${saltadas} ya estaban importadas y no se han repetido.`:''}`;
+    render();
+  }catch(x){msg.textContent='No se pudo importar: '+errTxt(x)}
+};
+
+// ---- diálogos ----
+function openDlg(html){$('dlgBody').innerHTML=html;const d=$('dlg');if(!d.open)d.showModal();d.querySelector('input:not([type=hidden]),select,textarea')?.focus()}
+function closeDlg(){$('dlg').close()}
+$('dlg').addEventListener('click',e=>{if(e.target.closest('[data-close]')||e.target===$('dlg'))closeDlg()});
+
+// ---- entrar (mismo sistema que Mis gastos: contraseña, o código por correo la primera vez) ----
+const A={mode:'login',email:'',resendAt:0};
+function authView(){
+  const head=`<h1>Mi<span style="color:var(--accent)">Salud</span></h1>`;
+  if(A.mode==='code')return `${head}<p class="muted">Te enviamos un código de 6 cifras por correo para entrar la primera vez o elegir una contraseña nueva.</p>
+    <form data-f="code"><label>Correo<input name="email" type="email" autocomplete="email" autocapitalize="none" required value="${esc(A.email)}"></label>
+    <p class="err"></p><button class="btn primary">Enviarme el código</button></form><button class="linkbtn" data-a="login">Ya tengo contraseña</button>`;
+  if(A.mode==='verify')return `${head}<p class="muted">Escribe el código que hemos enviado a <b>${esc(A.email)}</b>. Mira también en spam.</p>
+    <form data-f="verify"><label>Código<input name="token" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="8" required></label>
+    <p class="err"></p><button class="btn primary">Comprobar</button></form><button class="linkbtn" data-a="resend">Enviar otro código</button><button class="linkbtn" data-a="login">Volver</button>`;
+  if(A.mode==='pass')return `${head}<p class="muted">Elige tu contraseña para entrar las próximas veces.</p>
+    <form data-f="pass"><input type="email" name="username" autocomplete="username" value="${esc(A.email)}" hidden>
+    <label>Contraseña nueva (mínimo 8 caracteres)<input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+    <p class="err"></p><button class="btn primary">Guardar y entrar</button></form>`;
+  if(A.mode==='denied')return `${head}<p>Esta cuenta no tiene acceso a MiSalud.</p><button class="btn ghost" data-a="logout">Cerrar sesión</button>`;
+  if(A.mode==='error')return `${head}<p>No se pudieron cargar los datos: ${esc(A.err||'')}.</p><button class="btn primary" data-a="retry">Reintentar</button><button class="linkbtn" data-a="logout">Cerrar sesión</button>`;
+  return `${head}<p class="muted">Vuestros informes médicos, en privado. Es la misma cuenta y contraseña que Mis gastos.</p>
+    <form data-f="login"><label>Correo<input name="email" type="email" autocomplete="username" autocapitalize="none" required value="${esc(A.email)}"></label>
+    <label>Contraseña<input name="password" type="password" autocomplete="current-password" required></label>
+    <p class="err"></p><button class="btn primary">Entrar</button></form>
+    <button class="linkbtn" data-a="code">Primera vez o he olvidado la contraseña</button>`;
+}
+function showAuth(mode){if(mode)A.mode=mode;$('appView').hidden=true;$('fab').hidden=true;$('authView').hidden=false;$('authView').innerHTML=authView()}
+function authErr(m){if(/Invalid login credentials/i.test(m))return 'Correo o contraseña incorrectos.';
+  if(/Signups not allowed|not found|otp_disabled/i.test(m))return 'Ese correo no tiene acceso a esta app.';
+  if(/(expired|invalid)/i.test(m)&&/(token|otp|code)/i.test(m))return 'El código no es correcto o ha caducado.';
+  if(/rate limit|seconds/i.test(m))return 'Espera un minuto antes de pedir otro código.';
+  return errTxt({message:m})}
+const sendCode=email=>sb.auth.signInWithOtp({email,options:{shouldCreateUser:false}});
+$('authView').addEventListener('submit',async e=>{
+  e.preventDefault();const f=e.target,fd=Object.fromEntries(new FormData(f)),err=f.querySelector('.err'),btn=f.querySelector('button');btn.disabled=true;err.textContent='';
+  try{
+    if(f.dataset.f==='login'){A.email=fd.email.trim().toLowerCase();const {data,error}=await sb.auth.signInWithPassword({email:A.email,password:fd.password});if(error)throw error;await enter(data.session)}
+    if(f.dataset.f==='code'){A.email=fd.email.trim().toLowerCase();const {error}=await sendCode(A.email);if(error)throw error;A.resendAt=Date.now()+60000;showAuth('verify')}
+    if(f.dataset.f==='verify'){const {error}=await sb.auth.verifyOtp({email:A.email,token:fd.token.trim(),type:'email'});if(error)throw error;showAuth('pass')}
+    if(f.dataset.f==='pass'){const {error}=await sb.auth.updateUser({password:fd.password});if(error&&!/should be different/i.test(error.message))throw error;
+      await enter((await sb.auth.getSession()).data.session);toast('Contraseña guardada')}
+  }catch(x){err.textContent=authErr(String(x?.message||x));btn.disabled=false}
+});
+$('authView').addEventListener('click',async e=>{const a=e.target.closest('[data-a]')?.dataset.a;if(!a)return;
+  if(a==='login'||a==='code')showAuth(a);
+  if(a==='retry')enter((await sb.auth.getSession()).data.session);
+  if(a==='logout')logout();
+  if(a==='resend'){if(Date.now()<A.resendAt)return toast('Espera un minuto antes de pedir otro código');
+    const {error}=await sendCode(A.email);if(error)return toast(authErr(error.message));A.resendAt=Date.now()+60000;toast('Te hemos enviado otro código')}
+});
+async function enter(session){
+  if(!session)return showAuth('login');
+  ME=session.user;A.email=ME.email||A.email;
+  try{await loadAll()}
+  catch(x){if(/Sin permiso/i.test(x?.message||''))return showAuth('denied');A.err=errTxt(x);return showAuth('error')}
+  $('authView').hidden=true;$('appView').hidden=false;
+  render();
+  aiCheck().then(()=>{if(route().k==='i')render()});
+}
+async function logout(){try{await sb.auth.signOut()}catch(e){}ME=null;P=[];C=[];I=[];F=[];Z=[];urlCache.clear();showAuth('login')}
+sb.auth.getSession().then(({data})=>enter(data.session)).catch(()=>showAuth('login'));
+</script>
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
+</body>
+</html>
